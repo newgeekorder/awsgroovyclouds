@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<project name="awsdrivers" default="all">
+  
+  
+  <property file="awsdrivers.properties"/>
+
+  <!-- Compiler options -->
+  
+  <property name="compiler.debug" value="on"/>
+  <property name="compiler.generate.no.warnings" value="off"/>
+  <property name="compiler.args" value=""/>
+  <property name="compiler.max.memory" value="128m"/>
+  <patternset id="ignored.files">
+    <exclude name="**/CVS/**"/>
+    <exclude name="**/SCCS/**"/>
+    <exclude name="**/RCS/**"/>
+    <exclude name="**/rcs/**"/>
+    <exclude name="**/.DS_Store/**"/>
+    <exclude name="**/.svn/**"/>
+    <exclude name="**/.sbas/**"/>
+    <exclude name="**/.IJI.*/**"/>
+    <exclude name="**/vssver.scc/**"/>
+    <exclude name="**/vssver2.scc/**"/>
+  </patternset>
+  <patternset id="compiler.resources">
+    <include name="**/?*.properties"/>
+    <include name="**/?*.xml"/>
+    <include name="**/?*.gif"/>
+    <include name="**/?*.png"/>
+    <include name="**/?*.jpeg"/>
+    <include name="**/?*.jpg"/>
+    <include name="**/?*.html"/>
+    <include name="**/?*.dtd"/>
+    <include name="**/?*.tld"/>
+  </patternset>
+  
+  
+  <!-- Global Libraries -->
+  
+  <path id="library.groovy.classpath">
+    <pathelement location="../thirdparty/groovy-all-1.6.0.jar"/>
+  </path>
+  
+  <path id="library.core.classpath">
+    <fileset dir="../thirdparty"><include name="**/*.jar"/></fileset>
+  </path>
+
+  <path id="library.samples.classpath">
+    <fileset dir="samples/lib"><include name="**/*.jar"/></fileset>
+  </path>
+  <!-- Modules -->
+  
+  <dirname property="module.aws.basedir" file="${module.aws.basedir}"/>
+  <!-- Module aws -->
+  
+  
+  <property name="compiler.args.aws" value="${compiler.args}"/>
+
+  <property name="aws.out.dir" value="${module.aws.basedir}/out"/>
+  <property name="aws.output.dir" value="${module.aws.basedir}/out/production"/>
+  <property name="aws.testoutput.dir" value="${module.aws.basedir}/out/test"/>
+  <property name="aws.output_samples.dir" value="${module.aws.basedir}/out/production_samples"/>
+  <property name="aws.lib.dir" value="${module.aws.basedir}/out/lib"/>
+  <property name="aws.samples.dir" value="${module.aws.basedir}/out/samples"/>    
+  <property name="aws.docs.dir" value="${module.aws.basedir}/docs"/>  
+  <property name="aws.download.dir" value="../download"/>
+
+  
+  <path id="aws.module.bootclasspath">
+    <!-- Paths to be included in compilation bootclasspath -->
+  </path>
+  
+  <path id="aws.module.classpath">
+    <path refid="library.groovy.classpath"/>
+    <path refid="library.core.classpath"/>
+  </path>
+  
+  <path id="aws.runtime.module.classpath">
+    <path refid="library.groovy.classpath"/>
+    <pathelement location="${aws.output.dir}"/>
+    <pathelement location="${aws.testoutput.dir}"/>
+    <path refid="library.core.classpath"/>
+  </path>
+  
+  
+  <patternset id="excluded.from.module.aws">
+    <patternset refid="ignored.files"/>
+  </patternset>
+  
+  <patternset id="excluded.from.compilation.aws">
+    <patternset refid="excluded.from.module.aws"/>
+  </patternset>
+  
+  <path id="aws.module.sourcepath">
+    <dirset dir="${module.aws.basedir}">
+      <include name="src"/>
+    </dirset>
+  </path>
+
+  <path id="aws.module.samplespath">
+    <dirset dir="${module.aws.basedir}">
+      <include name="samples"/>
+    </dirset>
+  </path>
+
+  <path id="aws.production">
+    <pathelement location="${aws.output.dir}"/>
+  </path>
+
+  <taskdef name="groovyc"
+         classname="org.codehaus.groovy.ant.Groovyc"
+         classpathref="library.groovy.classpath"/>
+  <target name="compile.module.aws" depends="compile.module.aws.production,compile.module.aws.tests" description="Compile module aws"/>
+
+  <taskdef name="Groovydoc"
+           classname="org.codehaus.groovy.ant.Groovydoc"
+           classpathref="library.groovy.classpath"/>
+
+  <target name="compile.module.aws.production" description="Compile module aws; production classes">
+    <mkdir dir="${aws.output.dir}"/>
+    <groovyc srcdir="src" destdir="${aws.output.dir}">
+        <classpath refid="aws.module.classpath"/>
+        <patternset refid="excluded.from.compilation.aws"/>        
+        <javac debug="${compiler.debug}">
+          <compilerarg line="${compiler.args.aws}"/>
+          <bootclasspath refid="aws.module.bootclasspath"/>
+        </javac>
+    </groovyc>
+
+    
+    <copy todir="${aws.output.dir}">
+      <fileset dir="${module.aws.basedir}/src">
+        <patternset refid="compiler.resources"/>
+        <type type="file"/>
+      </fileset>
+    </copy>
+
+    <mkdir dir="${aws.lib.dir}"/>
+    <jar destfile="${aws.lib.dir}/groovyclouds_aws_${build.version}.jar" basedir="${aws.output.dir}"></jar>
+    <copy todir="${aws.lib.dir}">
+        <fileset dir="../thirdparty"/>
+    </copy>
+  </target>
+  
+  <target name="compile.module.aws.tests" depends="compile.module.aws.production" description="compile module aws; test classes" unless="skip.tests"/>
+
+  <target name="samples" depends="compile.module.aws" description="sample classes">
+    <mkdir dir="${aws.output_samples.dir}"/>
+    <groovyc srcdir="samples/src" destdir="${aws.output_samples.dir}">
+        <classpath refid="aws.module.classpath"/>
+        <classpath refid="aws.production"/>
+        <classpath refid="library.samples.classpath"/>
+        <patternset refid="excluded.from.compilation.aws"/>
+        <javac debug="${compiler.debug}">
+          <compilerarg line="${compiler.args.aws}"/>
+          <bootclasspath refid="aws.module.bootclasspath"/>
+        </javac>
+    </groovyc>
+
+    <mkdir dir="${aws.samples.dir}/lib"/>    
+    <jar destfile="${aws.samples.dir}/lib/groovyclouds_aws_samples_${build.version}.jar"
+         basedir="${aws.output_samples.dir}"></jar>
+    <copy todir="${aws.samples.dir}/lib">
+        <fileset dir="samples/lib"/>
+        <fileset dir="${aws.lib.dir}"/>                
+    </copy>
+    <copy todir="${aws.samples.dir}">
+      <fileset dir="${module.aws.basedir}/samples">
+        <patternset refid="compiler.resources"/>
+        <type type="file"/>
+      </fileset>
+    </copy>
+  </target>
+
+  <target name="clean.module.aws" description="cleanup module">
+    <delete dir="${aws.out.dir}"/>
+  </target>
+  
+  <target name="init" description="Build initialization">
+    <!-- Perform any build initialization in this target -->
+  </target>
+
+    <target name="docs" description="create javadoc">
+        <delete dir="${aws.docs.dir}"/>
+        <Groovydoc
+              destdir="${aws.docs.dir}"
+              sourcepath="src"
+              packagenames="**.*" use="true"
+              windowtitle="Groovy Clouds - AWS Drivers" private="false"/>
+    </target>
+    <target name="download" depends="samples,docs" description="create downloadable zip file">
+        <mkdir dir="${aws.download.dir}/aws"/>        
+        <zip destfile="${aws.download.dir}/aws/groovyclouds_aws_${build.version}.zip">
+        <zipfileset dir="${module.aws.basedir}" prefix="AWSDrivers"
+                    excludes="out/production/**,out/production_samples/**"/>        
+        </zip>
+    </target>
+  <target name="clean" depends="clean.module.aws" description="cleanup all"/>
+  
+  <target name="all" depends="init, clean, compile.module.aws, samples, docs, download" description="build all"/>
+</project>
